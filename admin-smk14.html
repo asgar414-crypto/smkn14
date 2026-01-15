@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administrasi Wali Kelas | SMKN 14 Samarinda</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- SheetJS untuk Baca Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+
+    <style>
+        body { font-family: 'Poppins', sans-serif; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+        /* Radio Button Styling */
+        .radio-label input:checked + span {
+            transform: scale(1.1);
+            box-shadow: 0 0 0 2px white, 0 0 0 4px currentColor;
+        }
+
+        /* Animation */
+        .fade-in { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Login Page Transition */
+        #login-page { transition: opacity 0.5s ease; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 h-screen overflow-hidden">
+
+    <!-- LOGIN PAGE -->
+    <div id="login-page" class="fixed inset-0 z-50 bg-blue-900 flex items-center justify-center">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm fade-in">
+            <div class="text-center mb-8">
+                <div class="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-3xl font-bold shadow-lg">
+                    14
+                </div>
+                <h1 class="text-2xl font-bold text-gray-800">Login Wali Kelas</h1>
+                <p class="text-gray-500 text-sm">SMK Negeri 14 Samarinda</p>
+            </div>
+            
+            <form onsubmit="handleLogin(event)" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-user absolute left-3 top-3 text-gray-400"></i>
+                        <input type="text" id="username" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Masukkan username">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-lock absolute left-3 top-3 text-gray-400"></i>
+                        <input type="password" id="password" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Masukkan password">
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg shadow transition transform hover:scale-[1.02]">
+                    Masuk Aplikasi
+                </button>
+            </form>
+            <div id="login-error" class="mt-4 text-center text-red-500 text-sm hidden">Username atau password salah!</div>
+        </div>
+    </div>
+
+    <!-- MAIN APP (Hidden until login) -->
+    <div id="main-app" class="flex h-screen opacity-0 pointer-events-none transition-opacity duration-500">
+        
+        <!-- SIDEBAR -->
+        <aside class="w-64 bg-white shadow-xl z-20 hidden md:flex flex-col border-r border-gray-100">
+            <div class="p-6 flex items-center gap-3 border-b border-gray-100">
+                <div class="w-10 h-10 bg-blue-900 rounded-lg flex items-center justify-center font-bold text-xl text-white shadow-md">14</div>
+                <div>
+                    <h1 class="font-bold text-lg text-gray-800 leading-tight">Admin Wali</h1>
+                    <p class="text-xs text-gray-500">SMKN 14 Samarinda</p>
+                </div>
+            </div>
+
+            <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+                <button onclick="showSection('dashboard')" class="nav-btn w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 hover:bg-blue-50 transition-colors bg-blue-50 text-blue-700 font-medium" id="nav-dashboard">
+                    <i class="fa-solid fa-gauge w-5 text-center"></i> Dashboard
+                </button>
+                <button onclick="showSection('siswa')" class="nav-btn w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 hover:bg-gray-50 transition-colors text-gray-600" id="nav-siswa">
+                    <i class="fa-solid fa-users w-5 text-center"></i> Daftar Siswa
+                </button>
+                <button onclick="showSection('presensi')" class="nav-btn w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 hover:bg-gray-50 transition-colors text-gray-600" id="nav-presensi">
+                    <i class="fa-solid fa-clipboard-user w-5 text-center"></i> Presensi (Import)
+                </button>
+                <button onclick="showSection('jurnal')" class="nav-btn w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 hover:bg-gray-50 transition-colors text-gray-600" id="nav-jurnal">
+                    <i class="fa-solid fa-book-open w-5 text-center"></i> Jurnal (Import)
+                </button>
+                <button onclick="showSection('nilai')" class="nav-btn w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 hover:bg-gray-50 transition-colors text-gray-600" id="nav-nilai">
+                    <i class="fa-solid fa-star w-5 text-center"></i> Penilaian
+                </button>
+            </nav>
+
+            <div class="p-4 border-t border-gray-100">
+                <button onclick="logout()" class="w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 py-2 px-4 rounded-lg transition-all border border-red-100">
+                    <i class="fa-solid fa-right-from-bracket"></i> Logout
+                </button>
+            </div>
+        </aside>
+
+        <!-- CONTENT WRAPPER -->
+        <div class="flex-1 flex flex-col h-screen overflow-hidden relative">
+            
+            <!-- HEADER MOBILE -->
+            <header class="bg-white border-b border-gray-200 p-4 flex justify-between items-center md:hidden z-30">
+                <div class="flex items-center gap-2">
+                    <button onclick="toggleSidebar()" class="text-gray-600 text-xl p-2"><i class="fa-solid fa-bars"></i></button>
+                    <span class="font-bold text-gray-800">Admin Wali</span>
+                </div>
+            </header>
+
+            <!-- MAIN CONTENT -->
+            <main class="flex-1 overflow-y-auto p-4 md:p-8 relative bg-gray-50">
+                
+                <!-- TOAST NOTIFICATION -->
+                <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+                <!-- DASHBOARD -->
+                <section id="dashboard" class="content-section fade-in">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">Dashboard Overview</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <!-- Stat Cards -->
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl"><i class="fa-solid fa-users"></i></div>
+                            <div><p class="text-sm text-gray-500">Total Siswa</p><p class="text-2xl font-bold text-gray-800" id="dash-total-siswa">0</p></div>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xl"><i class="fa-solid fa-file-excel"></i></div>
+                            <div><p class="text-sm text-gray-500">Presensi Terupload</p><p class="text-2xl font-bold text-gray-800">12 File</p></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- DAFTAR SISWA -->
+                <section id="siswa" class="content-section hidden fade-in">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">Data Siswa</h2>
+                        <button onclick="openModal('addStudentModal')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow transition flex items-center gap-2">
+                            <i class="fa-solid fa-plus"></i> Tambah Siswa
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead class="bg-gray-50 text-gray-600 uppercase text-xs font-semibold">
+                                    <tr>
+                                        <th class="p-4">No</th>
+                                        <th class="p-4">Nama Lengkap</th>
+                                        <th class="p-4">Kelas</th>
+                                        <th class="p-4 text-center">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="studentTableBody" class="divide-y divide-gray-100 text-sm text-gray-700"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- PRESENSI (IMPORT EXCEL) -->
+                <section id="presensi" class="content-section hidden fade-in">
+                    <div class="mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">Presensi Harian</h2>
+                        <p class="text-gray-500 text-sm">Upload data absensi dari file Excel.</p>
+                    </div>
+
+                    <!-- Upload Area -->
+                    <div class="bg-white p-8 rounded-xl shadow-sm border-2 border-dashed border-blue-200 text-center mb-6 hover:bg-blue-50 transition">
+                        <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-800">Upload File Excel Presensi</h3>
+                        <p class="text-sm text-gray-500 mb-4">Format file: .xlsx atau .xls</p>
+                        
+                        <input type="file" id="filePresensi" accept=".xlsx, .xls" class="hidden" onchange="handleExcelUpload(this, 'presensi')">
+                        <button onclick="document.getElementById('filePresensi').click()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg shadow transition">
+                            <i class="fa-solid fa-file-excel"></i> Pilih File
+                        </button>
+                        <p class="text-xs text-gray-400 mt-2">Template kolom: Nama, Tanggal, Status (Hadir/Sakit/Izin/Alpa)</p>
+                    </div>
+
+                    <!-- Hasil Upload -->
+                    <div id="previewPresensi" class="hidden bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                            <h3 class="font-bold text-gray-700">Preview Data Presensi</h3>
+                            <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Data Diambil dari Excel</span>
+                        </div>
+                        <div class="overflow-x-auto max-h-96">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-blue-900 text-white sticky top-0">
+                                    <tr>
+                                        <th class="p-3">Nama</th>
+                                        <th class="p-3">Tanggal</th>
+                                        <th class="p-3">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="presensiTableBody" class="divide-y divide-gray-100"></tbody>
+                            </table>
+                        </div>
+                        <div class="p-4 bg-gray-50 flex justify-end">
+                            <button onclick="savePresensiData()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm">
+                                <i class="fa-solid fa-save"></i> Konfirmasi & Simpan
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- JURNAL (IMPORT EXCEL) -->
+                <section id="jurnal" class="content-section hidden fade-in">
+                    <div class="mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">Jurnal Mengajar</h2>
+                        <p class="text-gray-500 text-sm">Upload rekap jurnal dari file Excel.</p>
+                    </div>
+
+                    <!-- Upload Area -->
+                    <div class="bg-white p-8 rounded-xl shadow-sm border-2 border-dashed border-indigo-200 text-center mb-6 hover:bg-indigo-50 transition">
+                        <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                            <i class="fa-solid fa-file-lines"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-800">Upload File Excel Jurnal</h3>
+                        <p class="text-sm text-gray-500 mb-4">Format file: .xlsx atau .xls</p>
+                        
+                        <input type="file" id="fileJurnal" accept=".xlsx, .xls" class="hidden" onchange="handleExcelUpload(this, 'jurnal')">
+                        <button onclick="document.getElementById('fileJurnal').click()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg shadow transition">
+                            <i class="fa-solid fa-file-excel"></i> Pilih File
+                        </button>
+                        <p class="text-xs text-gray-400 mt-2">Template kolom: Tanggal, Kelas, Materi, Keterangan</p>
+                    </div>
+
+                    <!-- Hasil Upload -->
+                    <div id="previewJurnal" class="hidden bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                            <h3 class="font-bold text-gray-700">Preview Data Jurnal</h3>
+                            <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full">Data Diambil dari Excel</span>
+                        </div>
+                        <div class="overflow-x-auto max-h-96">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-indigo-900 text-white sticky top-0">
+                                    <tr>
+                                        <th class="p-3">Tanggal</th>
+                                        <th class="p-3">Kelas</th>
+                                        <th class="p-3">Materi</th>
+                                        <th class="p-3">Keterangan</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="jurnalTableBody" class="divide-y divide-gray-100"></tbody>
+                            </table>
+                        </div>
+                        <div class="p-4 bg-gray-50 flex justify-end">
+                            <button onclick="saveJurnalData()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm">
+                                <i class="fa-solid fa-save"></i> Konfirmasi & Simpan
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- NILAI -->
+                <section id="nilai" class="content-section hidden fade-in">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">Penilaian</h2>
+                    <div class="bg-white p-6 rounded-xl shadow-sm text-center text-gray-500">
+                        <i class="fa-solid fa-pen-to-square text-4xl mb-3 text-gray-300"></i>
+                        <p>Fitur penilaian manual tersedia di versi lengkap.</p>
+                    </div>
+                </section>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- MODAL ADD STUDENT -->
+    <div id="addStudentModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 transform transition-all scale-95 opacity-0" id="modalContent">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-800">Tambah Siswa</h3>
+                <button onclick="closeModal('addStudentModal')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <form onsubmit="handleAddStudent(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm text-gray-700 mb-1">Nama</label>
+                    <input type="text" id="newStudentName" required class="w-full p-2 border rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-700 mb-1">Kelas</label>
+                    <select id="newStudentClass" class="w-full p-2 border rounded-lg bg-white">
+                        <option value="X AKL 1">X AKL 1</option>
+                        <option value="X AKL 2">X AKL 2</option>
+                    </select>
+                </div>
+                <div class="flex justify-end gap-2 mt-4">
+                    <button type="button" onclick="closeModal('addStudentModal')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA & STATE ---
+        let students = [
+            { id: 1, name: "ADDIN KAMILA PUTRI", class: "X AKL 1" },
+            { id: 2, name: "AIRA", class: "X AKL 1" },
+            { id: 3, name: "ANDHIKA RAHMAN", class: "X AKL 1" },
+            { id: 4, name: "ANITA APRILIA", class: "X AKL 1" },
+            { id: 5, name: "A. BESSE HASMIANTI", class: "X AKL 2" },
+            { id: 6, name: "ADELITA MULANDARI", class: "X AKL 2" },
+            { id: 7, name: "ANIS AMIROH", class: "X AKL 2" },
+            { id: 8, name: "AQBAL AHMAD ZULFHA", class: "X AKL 2" }
+        ];
+
+        let tempPresensiData = [];
+        let tempJurnalData = [];
+
+        // --- LOGIN SYSTEM ---
+        function handleLogin(e) {
+            e.preventDefault();
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
+            const err = document.getElementById('login-error');
+
+            if (u === 'asgaracc' && p === 'saranaguru') {
+                // Success
+                document.getElementById('login-page').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('login-page').style.display = 'none';
+                    document.getElementById('main-app').classList.remove('opacity-0', 'pointer-events-none');
+                    renderStudentTable();
+                    updateDashboard();
+                }, 500);
+            } else {
+                err.classList.remove('hidden');
+                // Shake animation for visual feedback
+                const panel = document.querySelector('#login-page > div');
+                panel.classList.add('animate-[pulse_0.2s_ease-in-out_2]');
+                setTimeout(() => panel.classList.remove('animate-[pulse_0.2s_ease-in-out_2]'), 400);
+            }
+        }
+
+        function logout() {
+            if(confirm("Logout?")) location.reload();
+        }
+
+        // --- NAVIGATION ---
+        function showSection(id) {
+            document.querySelectorAll('.content-section').forEach(el => el.classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+            
+            // Active state sidebar
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-50', 'text-blue-700', 'font-medium');
+                btn.classList.add('text-gray-600');
+            });
+            const active = document.getElementById('nav-' + id);
+            if(active) {
+                active.classList.add('bg-blue-50', 'text-blue-700', 'font-medium');
+                active.classList.remove('text-gray-600');
+            }
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.querySelector('aside');
+            sidebar.classList.toggle('hidden');
+            sidebar.classList.toggle('absolute');
+            sidebar.classList.toggle('h-full');
+        }
+
+        // --- STUDENT CRUD ---
+        function renderStudentTable() {
+            const tbody = document.getElementById('studentTableBody');
+            tbody.innerHTML = '';
+            students.forEach((s, i) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-50 border-b";
+                tr.innerHTML = `
+                    <td class="p-4">${i+1}</td>
+                    <td class="p-4 font-medium">${s.name}</td>
+                    <td class="p-4"><span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">${s.class}</span></td>
+                    <td class="p-4 text-center"><button onclick="deleteStudent(${s.id})" class="text-red-500 hover:text-red-700"><i class="fa-solid fa-trash"></i></button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+            document.getElementById('dash-total-siswa').innerText = students.length;
+        }
+
+        function handleAddStudent(e) {
+            e.preventDefault();
+            const name = document.getElementById('newStudentName').value.toUpperCase();
+            const cls = document.getElementById('newStudentClass').value;
+            students.push({ id: Date.now(), name, class: cls });
+            renderStudentTable();
+            closeModal('addStudentModal');
+            showToast("Siswa ditambahkan");
+        }
+
+        function deleteStudent(id) {
+            if(confirm("Hapus siswa ini?")) {
+                students = students.filter(s => s.id !== id);
+                renderStudentTable();
+            }
+        }
+
+        function updateDashboard() {
+            document.getElementById('dash-total-siswa').innerText = students.length;
+        }
+
+        // --- EXCEL IMPORT LOGIC (CORE FEATURE) ---
+        function handleExcelUpload(input, type) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                
+                // Ambil sheet pertama
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                
+                // Parse ke JSON (Array of Objects)
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, {header: 1}); // Header 1 = array of arrays
+                
+                if (jsonData.length > 1) {
+                    processExcelData(jsonData, type);
+                    showToast("File Excel berhasil dibaca!", "success");
+                } else {
+                    showToast("File Excel kosong atau format salah", "error");
+                }
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+
+        function processExcelData(data, type) {
+            // data adalah array baris. Baris 0 adalah header.
+            const headers = data[0].map(h => String(h).toLowerCase());
+            const rows = data.slice(1);
+
+            if (type === 'presensi') {
+                const previewDiv = document.getElementById('previewPresensi');
+                const tbody = document.getElementById('presensiTableBody');
+                tbody.innerHTML = '';
+                tempPresensiData = [];
+
+                // Mapping kolom flexibel
+                const nameIdx = headers.findIndex(h => h.includes('nama'));
+                const dateIdx = headers.findIndex(h => h.includes('tanggal'));
+                const statusIdx = headers.findIndex(h => h.includes('status'));
+
+                rows.forEach(row => {
+                    if(row.length === 0) return; // Skip empty rows
+                    const nama = row[nameIdx] || "Tanpa Nama";
+                    const tanggal = row[dateIdx] || "-";
+                    const status = row[statusIdx] || "-";
+                    
+                    tempPresensiData.push({ nama, tanggal, status });
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="p-3 border-b">${nama}</td>
+                        <td class="p-3 border-b">${tanggal}</td>
+                        <td class="p-3 border-b">
+                            <span class="px-2 py-1 rounded text-xs font-bold 
+                                ${status === 'Hadir' ? 'bg-green-100 text-green-700' : 
+                                  status === 'Sakit' ? 'bg-blue-100 text-blue-700' : 
+                                  status === 'Izin' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}">
+                                ${status}
+                            </span>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                previewDiv.classList.remove('hidden');
+            } 
+            
+            else if (type === 'jurnal') {
+                const previewDiv = document.getElementById('previewJurnal');
+                const tbody = document.getElementById('jurnalTableBody');
+                tbody.innerHTML = '';
+                tempJurnalData = [];
+
+                // Mapping kolom
+                const dateIdx = headers.findIndex(h => h.includes('tanggal'));
+                const classIdx = headers.findIndex(h => h.includes('kelas'));
+                const topicIdx = headers.findIndex(h => h.includes('materi'));
+                const noteIdx = headers.findIndex(h => h.includes('ket') || h.includes('keterangan'));
+
+                rows.forEach(row => {
+                    if(row.length === 0) return;
+                    const tanggal = row[dateIdx] || "-";
+                    const kelas = row[classIdx] || "-";
+                    const materi = row[topicIdx] || "-";
+                    const ket = row[noteIdx] || "-";
+
+                    tempJurnalData.push({ tanggal, kelas, materi, ket });
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="p-3 border-b">${tanggal}</td>
+                        <td class="p-3 border-b font-bold">${kelas}</td>
+                        <td class="p-3 border-b">${materi}</td>
+                        <td class="p-3 border-b text-gray-500 text-xs">${ket}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                previewDiv.classList.remove('hidden');
+            }
+        }
+
+        function savePresensiData() {
+            // Di aplikasi nyata, ini akan mengirim 'tempPresensiData' ke server/database
+            console.log("Menyimpan Presensi:", tempPresensiData);
+            showToast("Data Presensi Berhasil Disimpan ke Database!", "success");
+            // Reset view
+            document.getElementById('previewPresensi').classList.add('hidden');
+            document.getElementById('filePresensi').value = "";
+        }
+
+        function saveJurnalData() {
+            // Di aplikasi nyata, ini akan mengirim 'tempJurnalData' ke server/database
+            console.log("Menyimpan Jurnal:", tempJurnalData);
+            showToast("Data Jurnal Berhasil Disimpan ke Database!", "success");
+            // Reset view
+            document.getElementById('previewJurnal').classList.add('hidden');
+            document.getElementById('fileJurnal').value = "";
+        }
+
+        // --- UTILS ---
+        function showToast(msg, type='info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const colors = { success: 'bg-green-600', error: 'bg-red-600', info: 'bg-blue-600' };
+            
+            toast.className = `${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg transition-all transform translate-y-10 opacity-0 pointer-events-auto flex items-center gap-2`;
+            toast.innerHTML = `<i class="fa-solid fa-bell"></i> <span>${msg}</span>`;
+            
+            container.appendChild(toast);
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-10', 'opacity-0');
+            });
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-10');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function openModal(id) {
+            const modal = document.getElementById(id);
+            const content = modal.querySelector('div[id$="Content"]'); 
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            const content = modal.querySelector('div[id$="Content"]');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+    </script>
+</body>
+</html>
